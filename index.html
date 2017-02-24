@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <title>BarTones</title>
     <link rel="stylesheet" href="style.css">
-    <script src = "../MyFunctions/SwagLib.js"> </script>
+    <script src="../MyFunctions/SwagLib.js">
+    </script>
 </head>
 
 <body>
@@ -33,6 +34,31 @@
     let boxes;
     let frameCount = 0;
     let currentInput = 0;
+    let keyboardInput = [];
+    let pressCount = 0;
+    let keyboardCodes = [65, 83, 68, 70, 81, 87, 69, 82, 49, 50, 51, 52];
+
+    document.onkeydown = KeyCheck;
+    window.onkeydown = KeyCheck;
+    //Two "simulateneous" Listeners somehow recognize multiple touches faster
+
+    document.onkeyup = (ev) =>
+    keyboardInput = keyboardInput.filter(
+            (element) => element !== keyboardCodes.indexOf(ev.keyCode));
+
+    //maps keyboard input into 0-12 scheme
+    function KeyCheck() {
+        let key = event.keyCode;
+        console.log(keyboardInput);
+
+        for (let i = 0; i < keyboardCodes.length; i++) {
+            if (key === keyboardCodes[i] &&
+                !(keyboardInput.includes(i))) {
+                keyboardInput.push(i);
+            }
+        }
+    }
+    // function keyboardInputToNumber
 
     function init() {
         let boxesHTMLCollection = document.getElementById("allBoxes").children;
@@ -40,32 +66,35 @@
         //= Array.from(boxesHTMLCollection);
         //= Array.prototype.slice.call( htmlCollection )
         //= [].slice.call(htmlCollection) //creates unnecessary array instance
-
-
         console.log(boxes.length);
         console.log(boxes);
 
         loop(); //sets counter to 0
-
     };
-    function loop () {
-        console.log(frameCount);
-        frameCount++;
 
-        if (frameCount >= 100) {frameCount = 0; currentInput++;}
-        boxes[currentInput].style.background = NumberToHSLa(currentInput, undefined, undefined, 1);//"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
-        boxes[currentInput].style.height = 10 + frameCount/100 * currentInput * 10 + "vh";
-        boxes[currentInput].style.opacity = frameCount/100
-        boxes[currentInput].style.borderTopLeftRadius = frameCount/100 * Math.sin(Math.PI* frameCount/100) * 100 + "px";
-        boxes[currentInput].style.borderTopRightRadius = frameCount/100 * Math.sin(Math.PI* frameCount/100) * 100 + "px";
+    function loop() {
+        if (keyboardInput.length > 0) { //(typeof keyboardInput[0] !== 'undefined' && keyboardInput[0] !== null)
+            //if something is pressed
+            currentInput = keyboardInput[0];
+            if (frameCount < 100) {
+                frameCount++;
+            }
+        } else if (frameCount > 0) {
+            frameCount--;
+        }
 
+        let percentage = frameCount / 100;
+        let box = boxes[currentInput];
+
+        box.style.background = NumberToHSLa(currentInput, undefined, undefined, 1); //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
+        box.style.height = 8 + percentage * currentInput * 10 + "vh";
+        box.style.opacity = percentage
+        box.style.borderTopLeftRadius = frameCount * Math.sin(Math.PI * percentage) + "px"; //acceleration = sinus
+        box.style.borderTopRightRadius = frameCount * Math.sin(Math.PI * percentage) + "px";
 
         requestAnimationFrame(loop); //loop(frameCount) gives error as a callback
     }
     // function legitTone () {};
     // function setBoxHeight(box, height);
     //if (endofTone) / (newTone) animate or slap text on it
-
-
-
 </script>
