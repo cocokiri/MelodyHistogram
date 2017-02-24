@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BarTones</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container" id="allBoxes">
+        <div class="box box1">C</div>
+        <div class="box box2">2</div>
+        <div class="box box3">D</div>
+        <div class="box box4">4</div>
+        <div class="box box5">5</div>
+        <div class="box box6">6</div>
+        <div class="box box7">7</div>
+        <div class="box box8">8</div>
+        <div class="box box9">9</div>
+        <div class="box box10">10</div>
+    </div>
+
+</body>
+
+</html>
+
+<script>
+    window.addEventListener("load", init);
+
+    let boxes;
+    let boxHeights = [];
+    function init() {
+        let boxesHTMLCollection = document.getElementById("allBoxes").children;
+        boxes = [...boxesHTMLCollection]; //go from useless htmlCollection to Array!
+        //= Array.from(boxesHTMLCollection);
+        //= Array.prototype.slice.call( htmlCollection )
+        //= [].slice.call(htmlCollection) //creates unnecessary array instance
+
+        let looping = {
+            frameCount: 0,
+            currentInput: 0,
+
+        }
+        console.log(boxes.length);
+        console.log(boxes);
+
+        for (let i = 0; i < boxes.length; i++) {
+            boxHeights[i] = 100 / i;
+        }
+
+        loop(looping.frameCount, boxes); //sets counter to 0
+
+    };
+    function loop (frameCount, animationElements) {
+        console.log(frameCount);
+        frameCount++;
+
+        if (frameCount >= 100) {frameCount = 0;}
+        animationElements[0].style.background = "hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
+        animationElements[0].style.height = frameCount+ "vh";
+
+        requestAnimationFrame(function () {loop(frameCount, animationElements);}); //loop(frameCount) gives error as a callback
+    }
+    // function legitTone () {};
+    // function setBoxHeight(box, height);
+    //if (endofTone) / (newTone) animate or slap text on it
+
+
+
+</script>
