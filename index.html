@@ -9,15 +9,15 @@
     </script>
     <script src="../Libraries/AudioSynth.js">
     </script>
-
-
 </head>
 
 <div class="container">
-    <div class="sideBar">
-        <button> HASDOISD</button>
+    <!-- <div class="sideBar">
+        <button class="btn"> HASDOISD</button>
 
-    </div>
+    </div> -->
+    <div class="display" id="display">Casdassd </div>
+
 
     <div class="boxes" id="allBoxes">
         <div class="box box1">C</div>
@@ -51,7 +51,11 @@
     // ---- EVENT HANDLERS ----
 
     // ---- DECLARATIONS -----
+    let display = document.getElementById("display");
+    display.innerHTML = "Play";
+
     let osc, audioCtx;
+    let chord;
     let baseOctave = 4;
     let myOscs = [];
     let osctypes = ["triangle", "square", "sine"]
@@ -179,11 +183,11 @@
         // let notesToPlay = noteNumbersToStringArray(notesPressed);
         // instrument.playMultipleNotes(notesToPlay);
         // lastnotesPressed = notesPressed;
-        if (event.keyCode === 16) {//if SHIFT is pressed --> + 1 Octave
+        if (event.keyCode === 16) { //if SHIFT is pressed --> + 1 Octave
             adjustFreq(myOscs, 2);
         }
-        if (event.keyCode === 91) {//if COMMAND is pressed --> lower by 1 Octave
-            adjustFreq(myOscs, 1/2);
+        if (event.keyCode === 91) { //if COMMAND is pressed --> lower by 1 Octave
+            adjustFreq(myOscs, 1 / 2);
         }
 
         for (let note of notesPressed) {
@@ -197,15 +201,25 @@
 
 
         let intervals = IntervalsinArray(notesPressed);
-        let chord = MineChordStructsForName(intervals, CHORD_STRUCTURES);
-        console.log(chord);
+        chord = MineChordStructsForName(intervals, CHORD_STRUCTURES);
+
+        if (chord) {
+        display.innerHTML = chromaticC[notesPressed[0]] + " " + chord;
+        }
+        else {
+            display.innerHTML = "Play";
+
+        }
+
+
 
 
         console.log(IntervalsinArray(notesPressed));
 
 
     }
-    function adjustFreq (soundMakers, factor) {
+
+    function adjustFreq(soundMakers, factor) {
         for (osc of soundMakers) {
             osc.frequency.value *= factor;
         }
@@ -239,7 +253,7 @@
         //this just stores data...the real object is the div collection we got at init()
         constructor(noteNumber) {
             this.currentheight = 0;
-            this.color = NumberToHSLa(noteNumber, undefined, undefined, 1);
+            this.color = NumberToHSLa(noteNumber, undefined, "62.5%", 1);
             this.myheight = 50;
             this.opacity = 1;
             this.borderRad - 0;
@@ -255,7 +269,6 @@
             }
 
             let percentage = this.currentheight / this.heightLimit;
-            this.bg = NumberToHSLa(this.note, undefined, undefined, 1);
             this.myheight = 15 + Math.sin(1.1 * percentage / 2 / 2 * Math.PI) * (this.note + 3) * 7;
             this.borderRad = 5 + Math.sin(Math.PI * percentage) * 100;
         }
