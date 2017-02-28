@@ -7,11 +7,19 @@
     <link rel="stylesheet" href="style.css">
     <script src="../MyFunctions/SwagLib.js">
     </script>
+    <script src="../Libraries/AudioSynth.js">
+    </script>
+
+
 </head>
 
-<body>
+<div class="container">
+    <div class="sideBar">
+        <button> HASDOISD</button>
 
-    <div class="container" id="allBoxes">
+    </div>
+
+    <div class="boxes" id="allBoxes">
         <div class="box box1">C</div>
         <div class="box box2">2</div>
         <div class="box box3">D</div>
@@ -22,60 +30,109 @@
         <div class="box box8">8</div>
         <div class="box box9">9</div>
         <div class="box box10">10</div>
+        <div class="box box9">11</div>
+        <div class="box box10">12</div>
+        <div class="box box10">13</div>
     </div>
-
-</body>
+</div>
 
 </html>
 
 <script>
+    // ---- EVENT HANDLERS
     window.addEventListener("load", init);
-
-    let boxes;
-    let frameCount = 0;
-    let currentInput = 0;
-    let keyboardInput = [];
-    let pressCount = 0;
-    let keyboardCodes = [65, 83, 68, 70, 81, 87, 69, 82, 49, 50, 51, 52];
-
     document.onkeydown = KeyCheck;
-    window.onkeydown = KeyCheck;
+    //ATTENTION: some notes cannot be played together because of KEyboard hardware
+    //if you try to press AQR in parallel it won't work....even when typing in a text editor
+
+    window.onkeydown = KeyCheck; //double holds better
     //Two "simulateneous" Listeners somehow recognize multiple touches faster
+    document.onkeyup = KeyUpCheck;
+    // ---- EVENT HANDLERS ----
 
-    document.onkeyup = (ev) =>
-    keyboardInput = keyboardInput.filter(
-            (element) => element !== keyboardCodes.indexOf(ev.keyCode));
-
-    //maps keyboard input into 0-12 scheme
-    function KeyCheck() {
-        let key = event.keyCode;
-        console.log(keyboardInput);
-
-        for (let i = 0; i < keyboardCodes.length; i++) {
-            if (key === keyboardCodes[i] &&
-                !(keyboardInput.includes(i))) {
-                keyboardInput.push(i);
-            }
+    // ---- DECLARATIONS -----
+    let osc, audioCtx;
+    let baseOctave = 4;
+    let myOscs = [];
+    let osctypes = ["triangle", "square", "sine"]
+    let mySynth = new AudioSynth();
+    let instrument = mySynth.createInstrument('piano');
+    instrument.playMultipleNotes = function(array, octave = 4, duration = 3) {
+        for (let note of array) {
+            this.play(note, octave, duration);
         }
     }
-    // function keyboardInputToNumber
+    let boxes;
+    let boxStates = [];
+    let frameCount = 0;
+    let animSpeed = {
+        up: 4,
+        down: 4
+    };
+    let currentInput = 0;
+    let notesPressed = [];
+    // let lastnotesPressed = [];
+    //ordered so that [0] => chromatic [0]
+    // const keyboardCodes3x4 = [65, 83, 68, 70, 81, 87, 69, 82, 49, 50, 51, 52];
+    //3x4 layout
+    const keyboardCodesZigZag = [65, 87, 83, 69, 68, 82, 70, 84, 71, 89, 72, 85, 74, 73];
+    const keyboardCodesPianoMapping = [65, 87, 83, 69, 68, 70, 84, 71, 89, 72, 85, 74, 75];
+
+    const CHORD_STRUCTURES = [
+        ["Major", 4, 7],
+        ["Major 6th", 4, 7, 9],
+        ["Dominant 7th", 4, 7, 10],
+        ["Major 7th", 4, 7, 11],
+
+        ["Minor", 3, 7],
+        ["Minor 6th", 3, 7, 9],
+        ["Minor 7th", 3, 7, 10],
+
+        ["Augmented", 4, 8],
+        ["Diminished 7th", 3, 6, 9],
+
+        ["Suspended 4", 5, 7],
+        ["Suspended 2", 2, 7]
+    ];
+
+    pianoRange = 13;
+
+
+
+    // ----- DECLARE ----
+
+
 
     function init() {
-        let boxesHTMLCollection = document.getElementById("allBoxes").children;
-        boxes = [...boxesHTMLCollection]; //go from useless htmlCollection to Array!
-        //= Array.from(boxesHTMLCollection);
-        //= Array.prototype.slice.call( htmlCollection )
-        //= [].slice.call(htmlCollection) //creates unnecessary array instance
-        console.log(boxes.length);
-        console.log(boxes);
+        audioCtx = new AudioContext();
 
+        //setup the possible Oscs and later just connect / disconnect them
+        for (let i = 0; i < pianoRange; i++) {
+            let freq = midiToFreq(i + baseOctave * 12);
+            let newOsc = new Osc(audioCtx, freq);
+            newOsc.note = i; //add ID to later remove
+            newOsc.connect(audioCtx.destination);
+            newOsc.start();
+            newOsc.disconnect(audioCtx.destination);
+            myOscs.push(newOsc);
+        }
+
+        let boxesHTMLCollection = document.getElementById("allBoxes").children;
+        boxes = [...boxesHTMLCollection];
+        //go from useless htmlCollection to Array! //= Array.from(boxesHTMLCollection) = Array.prototype.slice.call( htmlCollection ) = [].slice.call(htmlCollection) //creates unnecessary array instance
+
+        for (i = 0; i < boxes.length; i++) {
+            //make BoxState handlers ==> they will store the values / not real boxes seen on UI
+            boxStates[i] = new BoxState(i);
+            boxes[i].innerHTML = chromaticC2[i];
+        }
         loop(); //sets counter to 0
     };
 
     function loop() {
-        if (keyboardInput.length > 0) { //(typeof keyboardInput[0] !== 'undefined' && keyboardInput[0] !== null)
+        if (notesPressed.length > 0) { //(typeof notesPressed[0] !== 'undefined' && notesPressed[0] !== null)
             //if something is pressed
-            currentInput = keyboardInput[0];
+            currentInput = notesPressed[0];
             if (frameCount < 100) {
                 frameCount++;
             }
@@ -83,16 +140,125 @@
             frameCount--;
         }
 
-        let percentage = frameCount / 100;
-        let box = boxes[currentInput];
+        //increase only pressed boxes
+        for (i = 0; i < boxes.length; i++) {
+            if (notesPressed.includes(i)) {
+                boxStates[i].animate("up");
+            } else {
+                boxStates[i].animate("down");
+            }
+            updateBox(boxes[i], boxStates[i]);
+        }
 
-        box.style.background = NumberToHSLa(currentInput, undefined, undefined, 1); //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
-        box.style.height = 8 + percentage * currentInput * 10 + "vh";
-        box.style.opacity = percentage
-        box.style.borderTopLeftRadius = frameCount * Math.sin(Math.PI * percentage) + "px"; //acceleration = sinus
-        box.style.borderTopRightRadius = frameCount * Math.sin(Math.PI * percentage) + "px";
-
+        //will fail when playing with less notes
+        //decrease unpressed
         requestAnimationFrame(loop); //loop(frameCount) gives error as a callback
+    }
+
+
+    //---- FUNCTIONS  AND CONSTRUCTORS -----
+    class Osc {
+        constructor(audioContext, freq = 1200, type = "triangle") {
+            let myOsc = audioContext.createOscillator();
+            myOsc.frequency.value = freq;
+            myOsc.type = type;
+            return myOsc;
+        }
+    }
+
+    function KeyCheck(event) {
+        let key = event.keyCode;
+        for (let i = 0; i < keyboardCodesPianoMapping.length; i++) {
+            //map keycodes to 0 - 12 sheme
+            if (key === keyboardCodesPianoMapping[i] &&
+                !(notesPressed.includes(i))) {
+                notesPressed.push(i);
+            }
+        }
+        // let newNotes = differenceArray(lastnotesPressed, notesPressed);
+        // let notesToPlay = noteNumbersToStringArray(notesPressed);
+        // instrument.playMultipleNotes(notesToPlay);
+        // lastnotesPressed = notesPressed;
+        if (event.keyCode === 16) {//if SHIFT is pressed --> + 1 Octave
+            adjustFreq(myOscs, 2);
+        }
+        if (event.keyCode === 91) {//if COMMAND is pressed --> lower by 1 Octave
+            adjustFreq(myOscs, 1/2);
+        }
+
+        for (let note of notesPressed) {
+            myOscs[note].connect(audioCtx.destination);
+        }
+
+        RemoveAllDuplicates(notesPressed);
+        notesPressed.sort(function(a, b) {
+            return a - b
+        }); //sort in ascending order
+
+
+        let intervals = IntervalsinArray(notesPressed);
+        let chord = MineChordStructsForName(intervals, CHORD_STRUCTURES);
+        console.log(chord);
+
+
+        console.log(IntervalsinArray(notesPressed));
+
+
+    }
+    function adjustFreq (soundMakers, factor) {
+        for (osc of soundMakers) {
+            osc.frequency.value *= factor;
+        }
+    }
+
+    function KeyUpCheck(ev) {
+
+
+        notesPressed = notesPressed.filter(
+            (el) => el !== keyboardCodesPianoMapping.indexOf(ev.keyCode)
+            //remove notes that were released at keyUp
+        );
+        // osc.stop();
+        for (let osc of myOscs) {
+            if (osc.note === keyboardCodesPianoMapping.indexOf(ev.keyCode)) {
+                osc.disconnect(audioCtx.destination)
+            }
+        }
+    }
+
+    function updateBox(box, boxData) {
+        box.style.height = boxData.myheight + "vh";
+        box.style.background = boxData.color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
+        box.style.opacity = boxData.opacity;
+        box.style.borderTopLeftRadius = boxData.borderRad + "px"; //acceleration = sinus
+        box.style.borderTopRightRadius = boxData.borderRad + "px";
+        // console.log(boxData.borderRad);
+    }
+
+    class BoxState { //make framerate independent
+        //this just stores data...the real object is the div collection we got at init()
+        constructor(noteNumber) {
+            this.currentheight = 0;
+            this.color = NumberToHSLa(noteNumber, undefined, undefined, 1);
+            this.myheight = 50;
+            this.opacity = 1;
+            this.borderRad - 0;
+            this.note = noteNumber;
+            this.borderRad = 12;
+            this.heightLimit = this.myheight + this.note * 10;
+        }
+        animate(direction = nope) { //timeDelta as parameter
+            if (this.currentheight < this.heightLimit && direction === "up") {
+                this.currentheight += animSpeed.up;
+            } else if (this.currentheight > 0 && direction === "down") {
+                this.currentheight -= animSpeed.down;
+            }
+
+            let percentage = this.currentheight / this.heightLimit;
+            this.bg = NumberToHSLa(this.note, undefined, undefined, 1);
+            this.myheight = 15 + Math.sin(1.1 * percentage / 2 / 2 * Math.PI) * (this.note + 3) * 7;
+            this.borderRad = 5 + Math.sin(Math.PI * percentage) * 100;
+        }
     }
     // function legitTone () {};
     // function setBoxHeight(box, height);
