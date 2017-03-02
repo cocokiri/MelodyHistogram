@@ -20,19 +20,19 @@
 
 
     <div class="boxes" id="allBoxes">
-        <div class="box box1">C</div>
-        <div class="box box2">2</div>
-        <div class="box box3">D</div>
-        <div class="box box4">4</div>
-        <div class="box box5">5</div>
-        <div class="box box6">6</div>
-        <div class="box box7">7</div>
-        <div class="box box8">8</div>
-        <div class="box box9">9</div>
-        <div class="box box10">10</div>
-        <div class="box box9">11</div>
-        <div class="box box10">12</div>
-        <div class="box box10">13</div>
+        <div class="box box1"></div>
+        <div class="box box2"></div>
+        <div class="box box3"></div>
+        <div class="box box4"></div>
+        <div class="box box5"></div>
+        <div class="box box6"></div>
+        <div class="box box7"></div>
+        <div class="box box8"></div>
+        <div class="box box9"></div>
+        <div class="box box10"></div>
+        <div class="box box11"></div>
+        <div class="box box12"></div>
+        <div class="box box13"></div>
     </div>
 </div>
 
@@ -52,10 +52,9 @@
 
     // ---- DECLARATIONS -----
     let display = document.getElementById("display");
-    display.innerHTML = "Play";
+    display.textContent = "Play";
 
     let osc, audioCtx;
-    let chord;
     let baseOctave = 4;
     let myOscs = [];
     let osctypes = ["triangle", "square", "sine"]
@@ -101,14 +100,13 @@
 
     pianoRange = 13;
 
-
+let faces;
 
     // ----- DECLARE ----
 
-
-
     function init() {
         audioCtx = new AudioContext();
+
 
         //setup the possible Oscs and later just connect / disconnect them
         for (let i = 0; i < pianoRange; i++) {
@@ -125,11 +123,35 @@
         boxes = [...boxesHTMLCollection];
         //go from useless htmlCollection to Array! //= Array.from(boxesHTMLCollection) = Array.prototype.slice.call( htmlCollection ) = [].slice.call(htmlCollection) //creates unnecessary array instance
 
+
+        //Make Faces and Boxes
         for (i = 0; i < boxes.length; i++) {
             //make BoxState handlers ==> they will store the values / not real boxes seen on UI
             boxStates[i] = new BoxState(i);
-            boxes[i].innerHTML = chromaticC2[i];
+
+            let face = ["eyeleft", "mouth", "eyeright"];
+            let faceContainer = document.createElement("div");
+            faceContainer.setAttribute("class", "faceContainer"); //for flex aligning easier
+            for (let j = 0; j < 3; j++) {
+                let namediv = document.createElement("div");
+                namediv.setAttribute("class", face[j]);
+                faceContainer.appendChild(namediv);
+            }
+
+            let text = document.createElement("span");
+            text.setAttribute("class", "noteName");
+            boxes[i].appendChild(faceContainer);
+            boxes[i].appendChild(text);
+            text.textContent = chromaticC2[i];
+            boxes[i].style.height = boxStates[i].myheight + "vh";
+            boxes[i].style.background = boxStates[i].color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
         }
+
+        let facesHTML = document.getElementsByClassName("faceContainer");
+        faces = [...facesHTML];
+        console.log(faces);
+
+
         loop(); //sets counter to 0
     };
 
@@ -144,19 +166,38 @@
             frameCount--;
         }
 
-        //increase only pressed boxes
+
         for (i = 0; i < boxes.length; i++) {
             if (notesPressed.includes(i)) {
-                boxStates[i].animate("up");
+                boxStates[i].animate("up"); //increase only pressed boxes
             } else {
                 boxStates[i].animate("down");
             }
+
             updateBox(boxes[i], boxStates[i]);
+
+            changeFaceExpression(faces[i], boxStates[i]);
         }
+
+
 
         //will fail when playing with less notes
         //decrease unpressed
         requestAnimationFrame(loop); //loop(frameCount) gives error as a callback
+    }
+
+    function changeFaceExpression(face, boxData, defaultSize = 2) {
+
+        let children = [...face.children];
+        // let mouth = children[1];
+        for (let child of children) {
+            let percentage = (boxData.currentheight / boxData.heightLimit);
+            child.style.height = defaultSize * percentage + "vh";
+            // mouth.style.height = percentage * defaultSize + (Math.sin(Date.now()) * percentage/3) + "vh";
+        }
+
+
+
     }
 
 
@@ -190,6 +231,7 @@
             adjustFreq(myOscs, 1 / 2);
         }
 
+        console.log(notesPressed);
         for (let note of notesPressed) {
             myOscs[note].connect(audioCtx.destination);
         }
@@ -199,24 +241,16 @@
             return a - b
         }); //sort in ascending order
 
-
-        let intervals = IntervalsinArray(notesPressed);
-        chord = MineChordStructsForName(intervals, CHORD_STRUCTURES);
+        const currentNotes = notesPressed.slice(0);
+        let chord = notesToChordGuess(currentNotes, CHORD_STRUCTURES); //intervals in ascending order
 
         if (chord) {
-        display.innerHTML = chromaticC[notesPressed[0]] + " " + chord;
-        }
-        else {
-            display.innerHTML = "Play";
+            display.textContent = chord;
+        } else {
+            display.textContent = "Play";
 
         }
-
-
-
-
-        console.log(IntervalsinArray(notesPressed));
-
-
+        chord = "";
     }
 
     function adjustFreq(soundMakers, factor) {
@@ -226,13 +260,11 @@
     }
 
     function KeyUpCheck(ev) {
-
-
         notesPressed = notesPressed.filter(
             (el) => el !== keyboardCodesPianoMapping.indexOf(ev.keyCode)
             //remove notes that were released at keyUp
         );
-        // osc.stop();
+        // osc.stop(); //if the tone that's gone
         for (let osc of myOscs) {
             if (osc.note === keyboardCodesPianoMapping.indexOf(ev.keyCode)) {
                 osc.disconnect(audioCtx.destination)
@@ -242,12 +274,15 @@
 
     function updateBox(box, boxData) {
         box.style.height = boxData.myheight + "vh";
-        box.style.background = boxData.color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
-        box.style.opacity = boxData.opacity;
+        // console.log(boxData.myheight);
+        // box.style.background = boxData.color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
+        // box.style.opacity = boxData.opacity;
         box.style.borderTopLeftRadius = boxData.borderRad + "px"; //acceleration = sinus
         box.style.borderTopRightRadius = boxData.borderRad + "px";
         // console.log(boxData.borderRad);
     }
+
+
 
     class BoxState { //make framerate independent
         //this just stores data...the real object is the div collection we got at init()
@@ -269,8 +304,8 @@
             }
 
             let percentage = this.currentheight / this.heightLimit;
-            this.myheight = 15 + Math.sin(1.1 * percentage / 2 / 2 * Math.PI) * (this.note + 3) * 7;
-            this.borderRad = 5 + Math.sin(Math.PI * percentage) * 100;
+            this.myheight = 15 + Math.sin(1.1 * percentage / 4 * Math.PI) * (this.note + 3) * 7;
+            this.borderRad = 5 + Math.sin(Math.PI / 2 * percentage) * 100;
         }
     }
     // function legitTone () {};

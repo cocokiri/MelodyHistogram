@@ -90,35 +90,69 @@ p {
 }
 
 
-
 .boxes > * {
   display:flex; /*to align font*/
 
   align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between;
   margin-right: 0.5vh;
   /*border: 3px solid red;*/
 
   color:white;
   font-size: 32px;
-  text-align: center;
 
-  flex-basis: 10vw;
   min-width: 5vw; /*when shrinkin*/
   text-shadow:3px 2px 0 rgba(0,0,0,0.15);
   /*flex-basis: 80px; /*make sure F+ hasn't more room than */*/*/*/*/
   /*max-width: 10vh;*/
 }
+
 .boxes {
   display:flex;
   /*flex:1 1;*/
   height: 100vh;
-  /*max-width: 70vw;*/
-  /*flex-shrink:1;*/
-  justify-content: center;
   align-items: flex-end;
   align-self:center;
 }
+
+.faceContainer {
+  display: flex;
+  margin-top: 30%;
+  width: 100%%;
+  /*background-color: red;*/
+  align-items: center;
+  /*flex-direction: column;*/
+}
+.faceContainer > * {
+  /*margin-top: 2vh;*/
+  align-self: flex-start;
+  background-color: white;
+  border-radius: 100%;
+  height: 1.5vh;
+  width: 1.5vh; /*set height bc there is no text in it...no default size*/
+  flex-direction: column;
+}
+
+.eyeleft {
+  border-radius:5px;
+}
+
+.mouth {
+  height:2vh;
+  margin-top: 80%;
+  transform: scale(1.4);
+}
+.eyeright {
+  border-radius:3px;
+
+}
+
+.noteName {
+  align-self: center;
+  margin-bottom: 50%;
+}
+
 .display {
   display:flex;
   flex: 0 3 10%;
@@ -137,7 +171,6 @@ p {
           transform: rotate(-10deg);
   text-shadow: 10px 10px 0px rgba(0,0,0,0.1);
   /*margin: -50px 0 -50px 0;*/
-  padding: 0;
   /*background-color: rgba(0,0,0,0.1)*/
   position: absolute;
   -webkit-transform: translateX(0.5%);
@@ -150,6 +183,8 @@ p {
   z-index: 5;
   align-self: center;
 }
+
+
 
 .sideBar {
   display:flex;
