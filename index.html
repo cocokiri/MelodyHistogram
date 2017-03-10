@@ -3,312 +3,136 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>BarTones</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="../MyFunctions/SwagLib.js">
-    </script>
-    <script src="../Libraries/AudioSynth.js">
-    </script>
+    <title>PITCHINTIME</title>
+    <link rel="stylesheet" href="./style/styling.css">
+
+    <script src="../MyFunctions/SwagLib.js"></script>
+    <script src="./Victor.js"></script>
 </head>
 
-<div class="container">
-    <!-- <div class="sideBar">
-        <button class="btn"> HASDOISD</button>
-
-    </div> -->
-    <div class="display" id="display">Casdassd </div>
-
-
-    <div class="boxes" id="allBoxes">
-        <div class="box box1"></div>
-        <div class="box box2"></div>
-        <div class="box box3"></div>
-        <div class="box box4"></div>
-        <div class="box box5"></div>
-        <div class="box box6"></div>
-        <div class="box box7"></div>
-        <div class="box box8"></div>
-        <div class="box box9"></div>
-        <div class="box box10"></div>
-        <div class="box box11"></div>
-        <div class="box box12"></div>
-        <div class="box box13"></div>
-    </div>
-</div>
-
-</html>
+<canvas></canvas>
 
 <script>
-    // ---- EVENT HANDLERS
-    window.addEventListener("load", init);
-    document.onkeydown = KeyCheck;
-    //ATTENTION: some notes cannot be played together because of KEyboard hardware
-    //if you try to press AQR in parallel it won't work....even when typing in a text editor
+    'use strict'
+    window.addEventListener("onload", init);
 
-    window.onkeydown = KeyCheck; //double holds better
-    //Two "simulateneous" Listeners somehow recognize multiple touches faster
-    document.onkeyup = KeyUpCheck;
-    // ---- EVENT HANDLERS ----
+    const framesPerAnim = 300;
+    const CANV = document.querySelector('canvas');
+    // // console.log(CANV);
+    let CX = CANV.getContext("2d");
 
-    // ---- DECLARATIONS -----
-    let display = document.getElementById("display");
-    display.textContent = "Play";
+    window.onload = resizeCanvas(CANV);
+    window.onresize = resizeCanvas(CANV);
 
-    let osc, audioCtx;
-    let baseOctave = 4;
-    let myOscs = [];
-    let osctypes = ["triangle", "square", "sine"]
-    let mySynth = new AudioSynth();
-    let instrument = mySynth.createInstrument('piano');
-    instrument.playMultipleNotes = function(array, octave = 4, duration = 3) {
-        for (let note of array) {
-            this.play(note, octave, duration);
-        }
+    let timer = 0;
+    let FPS = 0;
+    let TIMING = {
+        now: new Date().getTime(),
+        previousTime: new Date().getTime(),
+        deltaTime: 0,
+        fps: 0
     }
-    let boxes;
-    let boxStates = [];
-    let frameCount = 0;
-    let animSpeed = {
-        up: 4,
-        down: 4
+
+    let points = [{
+        pos: new Victor(1,1),
+        timing: 0
+    }];
+
+    points[1] = {
+        pos: new Victor(5, 4),
+        timing: 1
     };
-    let currentInput = 0;
-    let notesPressed = [];
-    // let lastnotesPressed = [];
-    //ordered so that [0] => chromatic [0]
-    // const keyboardCodes3x4 = [65, 83, 68, 70, 81, 87, 69, 82, 49, 50, 51, 52];
-    //3x4 layout
-    const keyboardCodesZigZag = [65, 87, 83, 69, 68, 82, 70, 84, 71, 89, 72, 85, 74, 73];
-    const keyboardCodesPianoMapping = [65, 87, 83, 69, 68, 70, 84, 71, 89, 72, 85, 74, 75];
+    points[2] = {
+        pos: new Victor(8, 0),
+        timing: 2
+    };
+    points[3] = {
+        pos: new Victor(12, 0),
+        timing: 3
+    };
 
-    const CHORD_STRUCTURES = [
-        ["Major", 4, 7],
-        ["Major 6th", 4, 7, 9],
-        ["Dominant 7th", 4, 7, 10],
-        ["Major 7th", 4, 7, 11],
+    const NOTE_RANGE = 12;
+    const TIMEHORIZON = 20; //seconds
+    let heightUnit = CANV.height / NOTE_RANGE; //if 12 notes --- 1/12 of screenheight
+    let widthUnit = CANV.width / TIMEHORIZON;
+    let fromPoint = points[0].pos;
 
-        ["Minor", 3, 7],
-        ["Minor 6th", 3, 7, 9],
-        ["Minor 7th", 3, 7, 10],
 
-        ["Augmented", 4, 8],
-        ["Diminished 7th", 3, 6, 9],
+    console.log(CANV.height);
+    console.log(points);
+    console.log(TIMING);
 
-        ["Suspended 4", 5, 7],
-        ["Suspended 2", 2, 7]
-    ];
-
-    pianoRange = 13;
-
-let faces;
-
-    // ----- DECLARE ----
+    init();
 
     function init() {
-        audioCtx = new AudioContext();
+        'use strict'
+        // CX.beginPath();
+        // CX.moveTo(points[0].pos.x * widthUnit, (points[0].pos.y + 2) * heightUnit);
+        // CX.lineTo(points[1].pos.x * widthUnit, (points[1].pos.y + 2) * heightUnit);
+        // CX.strokeStyle = "black";
+        // CX.lineWidth = 3;
+        // CX.stroke();
+        // console.log(CX);
+        // CX.closePath();
 
+        loop();
+    }
 
-        //setup the possible Oscs and later just connect / disconnect them
-        for (let i = 0; i < pianoRange; i++) {
-            let freq = midiToFreq(i + baseOctave * 12);
-            let newOsc = new Osc(audioCtx, freq);
-            newOsc.note = i; //add ID to later remove
-            newOsc.connect(audioCtx.destination);
-            newOsc.start();
-            newOsc.disconnect(audioCtx.destination);
-            myOscs.push(newOsc);
-        }
-
-        let boxesHTMLCollection = document.getElementById("allBoxes").children;
-        boxes = [...boxesHTMLCollection];
-        //go from useless htmlCollection to Array! //= Array.from(boxesHTMLCollection) = Array.prototype.slice.call( htmlCollection ) = [].slice.call(htmlCollection) //creates unnecessary array instance
-
-
-        //Make Faces and Boxes
-        for (i = 0; i < boxes.length; i++) {
-            //make BoxState handlers ==> they will store the values / not real boxes seen on UI
-            boxStates[i] = new BoxState(i);
-
-            let face = ["eyeleft", "mouth", "eyeright"];
-            let faceContainer = document.createElement("div");
-            faceContainer.setAttribute("class", "faceContainer"); //for flex aligning easier
-            for (let j = 0; j < 3; j++) {
-                let namediv = document.createElement("div");
-                namediv.setAttribute("class", face[j]);
-                faceContainer.appendChild(namediv);
-            }
-
-            let text = document.createElement("span");
-            text.setAttribute("class", "noteName");
-            boxes[i].appendChild(faceContainer);
-            boxes[i].appendChild(text);
-            text.textContent = chromaticC2[i];
-            boxes[i].style.height = boxStates[i].myheight + "vh";
-            boxes[i].style.background = boxStates[i].color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
-        }
-
-        let facesHTML = document.getElementsByClassName("faceContainer");
-        faces = [...facesHTML];
-        console.log(faces);
-
-
-        loop(); //sets counter to 0
-    };
+    Victor.prototype.midiToUnitVector = function(midi) {
+        let rad = (midi % 12) / 12 * Math.PI * 2;
+        let x = Math.sin(rad); //x of einheitskreis
+        let y = -Math.cos(rad); //y of einheitsKreis
+        let vec = new Victor(x, y);
+        return vec;
+    }
 
     function loop() {
-        if (notesPressed.length > 0) { //(typeof notesPressed[0] !== 'undefined' && notesPressed[0] !== null)
-            //if something is pressed
-            currentInput = notesPressed[0];
-            if (frameCount < 100) {
-                frameCount++;
-            }
-        } else if (frameCount > 0) {
-            frameCount--;
-        }
+        TIMING.now = new Date().getTime();
+        TIMING.deltaTime = TIMING.now - TIMING.oldTime;
+        TIMING.previousTime = TIMING.now;
+        TIMING.fps = 1000 / TIMING.deltaTime;
 
 
-        for (i = 0; i < boxes.length; i++) {
-            if (notesPressed.includes(i)) {
-                boxStates[i].animate("up"); //increase only pressed boxes
-            } else {
-                boxStates[i].animate("down");
-            }
+        let fromPoint =  new Victor(points[0].pos.x, points[0].pos.y);
+        let toPoint = new Victor(points[1].pos.x, points[1].pos.y);; //readd Victor functionality
 
-            updateBox(boxes[i], boxStates[i]);
-
-            changeFaceExpression(faces[i], boxStates[i]);
-        }
+        let VecDir = toPoint.subtract(fromPoint);
+        let perFrameVec = VecDir.divide(new Victor(framesPerAnim, framesPerAnim)); //= divide by 300
+        // console.log(perFrameVec);
+        //frames animated * totalvector/totalframes + wherewestarted
+        let currentPoint = fromPoint.add(perFrameVec.multiply(new Victor(timer, timer)));
+        // console.log(currentPoint);
 
 
-
-        //will fail when playing with less notes
-        //decrease unpressed
-        requestAnimationFrame(loop); //loop(frameCount) gives error as a callback
-    }
-
-    function changeFaceExpression(face, boxData, defaultSize = 2) {
-
-        let children = [...face.children];
-        // let mouth = children[1];
-        for (let child of children) {
-            let percentage = (boxData.currentheight / boxData.heightLimit);
-            child.style.height = defaultSize * percentage + "vh";
-            // mouth.style.height = percentage * defaultSize + (Math.sin(Date.now()) * percentage/3) + "vh";
-        }
-
-
-
-    }
-
-
-    //---- FUNCTIONS  AND CONSTRUCTORS -----
-    class Osc {
-        constructor(audioContext, freq = 1200, type = "triangle") {
-            let myOsc = audioContext.createOscillator();
-            myOsc.frequency.value = freq;
-            myOsc.type = type;
-            return myOsc;
-        }
-    }
-
-    function KeyCheck(event) {
-        let key = event.keyCode;
-        for (let i = 0; i < keyboardCodesPianoMapping.length; i++) {
-            //map keycodes to 0 - 12 sheme
-            if (key === keyboardCodesPianoMapping[i] &&
-                !(notesPressed.includes(i))) {
-                notesPressed.push(i);
-            }
-        }
-        // let newNotes = differenceArray(lastnotesPressed, notesPressed);
-        // let notesToPlay = noteNumbersToStringArray(notesPressed);
-        // instrument.playMultipleNotes(notesToPlay);
-        // lastnotesPressed = notesPressed;
-        if (event.keyCode === 16) { //if SHIFT is pressed --> + 1 Octave
-            adjustFreq(myOscs, 2);
-        }
-        if (event.keyCode === 91) { //if COMMAND is pressed --> lower by 1 Octave
-            adjustFreq(myOscs, 1 / 2);
-        }
-
-        console.log(notesPressed);
-        for (let note of notesPressed) {
-            myOscs[note].connect(audioCtx.destination);
-        }
-
-        RemoveAllDuplicates(notesPressed);
-        notesPressed.sort(function(a, b) {
-            return a - b
-        }); //sort in ascending order
-
-        const currentNotes = notesPressed.slice(0);
-        let chord = notesToChordGuess(currentNotes, CHORD_STRUCTURES); //intervals in ascending order
-
-        if (chord) {
-            display.textContent = chord;
+        //RENDER
+        if (timer === 0) {
+            console.log(timer);
+            CX.beginPath();
+            CX.moveTo(fromPoint.x * widthUnit, CANV.height - fromPoint.y * heightUnit);
         } else {
-            display.textContent = "Play";
-
+            CX.lineTo(currentPoint.x * widthUnit, CANV.height- currentPoint.y * heightUnit);
         }
-        chord = "";
+        CX.stroke();
+
+        if(timer >= framesPerAnim) {
+            timer = 0;
+            points.shift(); //remove first item...next couple of Vecs
+        }
+
+        timer++;
+        requestAnimationFrame(loop);
     }
 
-    function adjustFreq(soundMakers, factor) {
-        for (osc of soundMakers) {
-            osc.frequency.value *= factor;
-        }
-    }
-
-    function KeyUpCheck(ev) {
-        notesPressed = notesPressed.filter(
-            (el) => el !== keyboardCodesPianoMapping.indexOf(ev.keyCode)
-            //remove notes that were released at keyUp
-        );
-        // osc.stop(); //if the tone that's gone
-        for (let osc of myOscs) {
-            if (osc.note === keyboardCodesPianoMapping.indexOf(ev.keyCode)) {
-                osc.disconnect(audioCtx.destination)
-            }
-        }
-    }
-
-    function updateBox(box, boxData) {
-        box.style.height = boxData.myheight + "vh";
-        // console.log(boxData.myheight);
-        // box.style.background = boxData.color; //"hsla(30,50%,50%," + (frameCount*frameCount)/(100*100); + ")";
-        // box.style.opacity = boxData.opacity;
-        box.style.borderTopLeftRadius = boxData.borderRad + "px"; //acceleration = sinus
-        box.style.borderTopRightRadius = boxData.borderRad + "px";
-        // console.log(boxData.borderRad);
-    }
+    // function CoordsInPx ()
 
 
+    //when to switch to the next point
 
-    class BoxState { //make framerate independent
-        //this just stores data...the real object is the div collection we got at init()
-        constructor(noteNumber) {
-            this.currentheight = 0;
-            this.color = NumberToHSLa(noteNumber, undefined, "62.5%", 1);
-            this.myheight = 50;
-            this.opacity = 1;
-            this.borderRad - 0;
-            this.note = noteNumber;
-            this.borderRad = 12;
-            this.heightLimit = this.myheight + this.note * 10;
-        }
-        animate(direction = nope) { //timeDelta as parameter
-            if (this.currentheight < this.heightLimit && direction === "up") {
-                this.currentheight += animSpeed.up;
-            } else if (this.currentheight > 0 && direction === "down") {
-                this.currentheight -= animSpeed.down;
-            }
+    // directionalVector = VecA.subtract(VecB); -> divide by (new Victor(frames,frames)) = /100 or  x y
+    //==> add directVec to lineTo Path every Frame....maybe some easing but who gives
+    //decide if to switch when ...distance is close or frames have passed.
 
-            let percentage = this.currentheight / this.heightLimit;
-            this.myheight = 15 + Math.sin(1.1 * percentage / 4 * Math.PI) * (this.note + 3) * 7;
-            this.borderRad = 5 + Math.sin(Math.PI / 2 * percentage) * 100;
-        }
-    }
-    // function legitTone () {};
-    // function setBoxHeight(box, height);
-    //if (endofTone) / (newTone) animate or slap text on it
+    //model.update();
+    //ui.draw();
+
 </script>

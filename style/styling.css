@@ -1,0 +1,26 @@
+/* Box-sizing border-box */
+* { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box; }
+
+* { /*no BS*/
+  margin:0;
+  padding:0;
+  border:0;
+}
+@font-face {
+      font-family: 'american_purposeregular';
+      src: url('american_purpose-webfont.eot');
+      src: url('american_purpose-webfont.eot?#iefix') format('embedded-opentype'),
+           url('american_purpose-webfont.woff2') format('woff2'),
+           url('american_purpose-webfont.woff') format('woff'),
+           url('american_purpose-webfont.ttf') format('truetype'),
+           url('american_purpose-webfont.svg#american_purposeregular') format('svg');
+      font-weight: normal;
+      font-style: normal;
+}
+h1, h2, h3, h4, h5 {
+  font-family: 'american_purposeregular', serif;
+}
+
+html, body {
+  font-family: 'american_purposeregular', sans-serif;
+}
