@@ -1,2 +1,2 @@
 # MelodyHistogram
-Shows a seismograph of melody. Sing or play with it. Preferably with silent surroundings. Works unreliable at Rock Concerts.
+Shows a seismograph of melody. Sing or play with it, preferably with silent surroundings. Works unreliably at Rock Concerts.
